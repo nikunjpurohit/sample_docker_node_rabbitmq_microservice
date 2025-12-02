@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:5
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - backend
+  
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_node
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - backend
+
+
+  user-service:
+    build: ./User
+    container_name: user-service
+    ports:
+      - "3001:3001"
+    environment:
+      MONGO_URI: mongodb://mongo:27017/users
+    depends_on:
+      - mongo
+    networks:
+      - backend
+
+  task-service:
+    build: ./Task
+    container_name: task-service
+    ports:
+      - "3002:3002"
+    environment:
+      MONGO_URI: mongodb://mongo:27017/tasks
+    depends_on:
+      - mongo
+      - user-service
+      - rabbitmq
+    networks:
+      - backend
+      
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - rabbitmq
+      - task-service
+    networks:
+      - backend
+volumes:
+  mongo-data: {}
+
+networks:
+  backend: {}
